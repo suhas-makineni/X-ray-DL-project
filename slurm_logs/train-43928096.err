@@ -1,0 +1,3 @@
+/var/spool/slurm/job43928096/slurm_script: line 14: venv/bin/activate: No such file or directory
+python: can't open file '//scripts/train_model.py': [Errno 2] No such file or directory
+grep: outputs/train_metrics.txt: No such file or directory

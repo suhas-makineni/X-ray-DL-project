@@ -1,0 +1,7 @@
+num_classes=5
+num_samples=739
+final_train_loss=0.000237
+final_train_accuracy=1.000000
+final_val_loss=0.000000
+final_val_accuracy=1.000000
+model_file=outputs/model.pt
