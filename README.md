@@ -2,9 +2,9 @@
 
 ## Overview
 
-This project investigates the use of deep learning for chest X-ray analysis using a multi-task learning approach. The model will use chest X-ray images as input and predict both disease labels and patient metadata such as patient gender.
+This project investigates the use of deep learning for chest X-ray analysis using a multi-task learning approach. Rather than only predicting disease labels from chest X-ray images, the model simultaneously predicts disease labels and patient metadata (gender). The motivation behind this approach is to determine whether jointly learning multiple related tasks improves feature learning and overall model performance compared to traditional disease-only classification models.
 
-The goal of this project is to explore whether jointly learning disease classification and metadata prediction improves the model’s learned image representations compared to standard disease-only classification approaches.
+The project was implemented in PyTorch using a ResNet18-based architecture with separate prediction heads for disease classification and gender classification.
 
 ## Dataset
 
@@ -12,92 +12,147 @@ This project uses the NIH Chest X-ray dataset:
 
 https://www.kaggle.com/datasets/nih-chest-xrays/data
 
-For this milestone, a few sample X-ray images and labels are included in the repository under:
+The full NIH dataset contains 112,120 chest X-ray images and associated metadata. For this project, a subset of 4,999 images was used for experimentation and model development.
 
-```text
-data/sample_images/
-```
+Metadata used from the dataset includes:
 
-and
+* Disease labels
+* Patient gender
+* Patient age
+* View position
 
-```text
-data/sample_labels.csv
-```
+The disease classification task was treated as a multi-label classification problem using the following disease categories:
 
----
+* Atelectasis
+* Cardiomegaly
+* Effusion
+* Infiltration
+* Mass
+* Nodule
+* Pneumonia
+* Pneumothorax
+* Consolidation
+* Edema
+* Emphysema
+* Fibrosis
+* Pleural Thickening
+* Hernia
 
+## Model Architecture
 
-## Repository Structure
+The model uses a ResNet18 backbone as a shared feature extractor.
 
-```text
-X-ray-DL-project/
-├── notebooks/
-│   └── data_demo.ipynb
-├── data/
-│   ├── sample_images/
-│   └── sample_labels.csv
-├── src/
-│   ├── my_dl_project/
-│   └── xray_project/
-├── pyproject.toml
-├── requirements.txt
-└── README.md
-```
+The shared image representation is then passed into two prediction heads:
 
----
+1. Disease Classification Head
 
-## Installation
+   * Multi-label disease prediction
+   * BCEWithLogitsLoss
 
-Clone the repository:
+2. Gender Classification Head
 
-```bash
-git clone https://github.com/suhas-makineni/X-ray-DL-project.git
-cd X-ray-DL-project
-```
+   * Binary gender classification
+   * CrossEntropyLoss
 
-Create a virtual environment:
+The total training loss is computed as the sum of the disease loss and gender classification loss.
 
-```bash
-python3.11 -m venv venv
-source venv/bin/activate
-```
+## Training
 
-Install the package:
+The dataset was split into:
 
-```bash
-pip install -e .
-```
+* 80% Training
+* 20% Validation
 
----
+Training was performed using:
 
-## Data Loader Demo
+* Optimizer: Adam
+* Learning Rate: 0.0001
+* Batch Size: 32
+* Epochs: 4
+* Hardware: NVIDIA GPU (CUDA)
 
-The notebook below demonstrates:
-- loading chest X-ray images
-- loading disease labels
-- loading metadata labels
-- visualizing sample images
+The training script is located at:
 
-Notebook location:
+src/xray_project/train_model.py
 
-```text
-notebooks/data_demo.ipynb
-```
+## Results
 
----
+Training loss consistently decreased throughout training:
 
-## Project Goal
+| Epoch | Training Loss |
+| ----- | ------------- |
+| 1     | 0.7841        |
+| 2     | 0.5386        |
+| 3     | 0.4299        |
+| 4     | 0.3625        |
 
-Many existing chest X-ray projects focus only on disease classification. This project explores a multi-task learning approach where the model predicts both disease labels and patient metadata simultaneously.
+Final validation metrics:
 
-The final model will likely use a pretrained CNN architecture such as ResNet or MobileNet implemented in PyTorch.
+| Metric          | Value  |
+| --------------- | ------ |
+| Validation Loss | 0.4499 |
+| Gender Accuracy | 88.8%  |
 
----
+These results indicate that the model successfully learned useful image representations and was able to predict patient gender with relatively high accuracy while simultaneously learning disease labels.
+
+A visualization of training loss is included in:
+
+outputs/training_loss.png
+
+The trained model weights are stored in:
+
+outputs/xray_multitask_model.pt
 
 ## Evaluation
 
-The project will evaluate:
-- disease classification accuracy
-- F1 score
-- metadata prediction accuracy
-- comparison between single-task and multi-task learning performance
+Evaluation was performed using:
+
+* Validation Loss
+* Gender Classification Accuracy
+* Disease Label Predictions
+* Dataset Distribution Analysis
+
+The evaluation notebook is located at:
+
+notebooks/evaluation.ipynb
+
+The notebook includes:
+
+* Dataset exploration
+* Disease frequency visualization
+* Gender distribution visualization
+* Sample image inspection
+* Model evaluation
+
+## Limitations
+
+Several limitations exist in the current implementation:
+
+* Only a subset of the NIH dataset was used.
+* Disease classification performance was not evaluated with full precision, recall, F1-score, and AUC metrics.
+* Only gender metadata was included in the multi-task learning framework.
+* Additional metadata such as patient age and view position could be incorporated in future work.
+
+## Future Work
+
+Potential future improvements include:
+
+* Training on the complete NIH dataset.
+* Using larger backbone architectures such as ResNet50 or EfficientNet.
+* Including additional patient metadata.
+* Comparing performance against a disease-only baseline model.
+* Computing more comprehensive disease classification metrics.
+
+## Repository Structure
+
+* notebooks/data_demo.ipynb
+* notebooks/evaluation.ipynb
+* src/xray_project/models.py
+* src/xray_project/train_model.py
+* src/xray_project/dataset/xray_dataset.py
+* outputs/xray_multitask_model.pt
+* outputs/training_loss.png
+
+## Conclusion
+
+This project demonstrates that a multi-task learning framework can be successfully applied to chest X-ray analysis. The model learned both disease-related information and patient metadata simultaneously, achieving a validation loss of 0.4499 and a gender classification accuracy of 88.8% on the validation set. Future work can extend this framework using larger datasets and more advanced model architectures.
