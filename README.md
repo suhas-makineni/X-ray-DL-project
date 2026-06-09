@@ -80,29 +80,44 @@ src/xray_project/train_model.py
 Training loss consistently decreased throughout training:
 
 | Epoch | Training Loss |
-| ----- | ------------- |
-| 1     | 0.7841        |
-| 2     | 0.5386        |
-| 3     | 0.4299        |
-| 4     | 0.3625        |
+|---------|---------|
+| 1 | 0.7841 |
+| 2 | 0.5386 |
+| 3 | 0.4299 |
+| 4 | 0.3625 |
 
 Final validation metrics:
 
-| Metric          | Value  |
-| --------------- | ------ |
+| Metric | Value |
+|---------|---------|
 | Validation Loss | 0.4499 |
-| Gender Accuracy | 88.8%  |
+| Gender Accuracy | 88.8% |
+| Precision | 0.89 |
+| Recall | 0.89 |
+| F1 Score | 0.89 |
 
-These results indicate that the model successfully learned useful image representations and was able to predict patient gender with relatively high accuracy while simultaneously learning disease labels.
+### Gender Classification Report
 
-A visualization of training loss is included in:
+| Class | Precision | Recall | F1 Score |
+|---------|---------|---------|---------|
+| Female | 0.87 | 0.89 | 0.88 |
+| Male | 0.90 | 0.88 | 0.89 |
 
-outputs/training_loss.png
+### Confusion Matrix
 
-The trained model weights are stored in:
+| Actual \\ Predicted | Female | Male |
+|---------|---------|---------|
+| Female | 419 | 51 |
+| Male | 61 | 469 |
 
-outputs/xray_multitask_model.pt
+### Baseline Comparison
 
+The dataset was relatively balanced, containing approximately:
+
+- Male: 52.2%
+- Female: 47.8%
+
+A naive classifier predicting only the majority class would achieve approximately 52.2% accuracy. The multitask model achieved 88.8% validation accuracy, substantially outperforming the baseline.
 ## Evaluation
 
 Evaluation was performed using:
