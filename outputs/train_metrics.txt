@@ -1,7 +1,6 @@
-num_classes=5
-num_samples=739
-final_train_loss=0.000237
-final_train_accuracy=1.000000
-final_val_loss=0.000000
-final_val_accuracy=1.000000
-model_file=outputs/model.pt
+Epoch 1 Train Loss: 0.7841
+Epoch 2 Train Loss: 0.5386
+Epoch 3 Train Loss: 0.4299
+Epoch 4 Train Loss: 0.3625
+Validation Loss: 0.4499
+Gender Accuracy: 0.888

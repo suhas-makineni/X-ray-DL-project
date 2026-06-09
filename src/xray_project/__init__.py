@@ -1,0 +1,1 @@
+from xray_project.models import MultiTaskXRayModel

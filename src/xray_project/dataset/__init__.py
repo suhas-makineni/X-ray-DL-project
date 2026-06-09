@@ -1,1 +1,1 @@
-from .xray_dataset import ChestXrayDataset
+from xray_project.dataset.xray_dataset import ChestXrayDataset
