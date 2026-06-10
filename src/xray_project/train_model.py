@@ -13,7 +13,7 @@ from xray_project.models import MultiTaskXRayModel
 
 def train_one_epoch(model, loader, optimizer, disease_loss_fn, gender_loss_fn, device):
     model.train()
-    total_loss = 0
+    total_loss = 0.0
 
     for images, disease_labels, gender_labels in loader:
         images = images.to(device)
@@ -38,7 +38,7 @@ def train_one_epoch(model, loader, optimizer, disease_loss_fn, gender_loss_fn, d
 
 def evaluate(model, loader, disease_loss_fn, gender_loss_fn, device):
     model.eval()
-    total_loss = 0
+    total_loss = 0.0
     correct_gender = 0
     total_gender = 0
 
@@ -60,19 +60,29 @@ def evaluate(model, loader, disease_loss_fn, gender_loss_fn, device):
             correct_gender += (gender_preds == gender_labels).sum().item()
             total_gender += gender_labels.size(0)
 
-    gender_acc = correct_gender / total_gender if total_gender > 0 else 0
-    return total_loss / len(loader), gender_acc
+    val_loss = total_loss / len(loader)
+    gender_acc = correct_gender / total_gender if total_gender > 0 else 0.0
+
+    return val_loss, gender_acc
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--csv_file", required=True)
-    parser.add_argument("--image_dir", required=True)
-    parser.add_argument("--epochs", type=int, default=2)
-    parser.add_argument("--batch_size", type=int, default=8)
+    parser = argparse.ArgumentParser(
+        description="Train a multitask chest X-ray model for disease and gender prediction."
+    )
+
+    parser.add_argument("--csv_file", required=True, help="Path to NIH metadata CSV.")
+    parser.add_argument("--image_dir", required=True, help="Path to folder containing X-ray images.")
+    parser.add_argument("--epochs", type=int, default=4)
+    parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--output", default="outputs/xray_multitask_model.pt")
+    parser.add_argument("--metrics_output", default="outputs/train_metrics.txt")
+    parser.add_argument("--seed", type=int, default=42)
+
     args = parser.parse_args()
+
+    torch.manual_seed(args.seed)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -80,6 +90,10 @@ def main():
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225],
+        ),
     ])
 
     dataset = ChestXrayDataset(
@@ -93,10 +107,26 @@ def main():
     train_size = int(0.8 * len(dataset))
     val_size = len(dataset) - train_size
 
-    train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+    generator = torch.Generator().manual_seed(args.seed)
+    train_dataset, val_dataset = random_split(
+        dataset,
+        [train_size, val_size],
+        generator=generator,
+    )
 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=2,
+    )
+
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=2,
+    )
 
     model = MultiTaskXRayModel(num_diseases=num_diseases).to(device)
 
@@ -104,24 +134,61 @@ def main():
     gender_loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
+    train_losses = []
+    val_losses = []
+    gender_accuracies = []
+
     for epoch in range(args.epochs):
         train_loss = train_one_epoch(
-            model, train_loader, optimizer, disease_loss_fn, gender_loss_fn, device
-        )
-        val_loss, gender_acc = evaluate(
-            model, val_loader, disease_loss_fn, gender_loss_fn, device
+            model,
+            train_loader,
+            optimizer,
+            disease_loss_fn,
+            gender_loss_fn,
+            device,
         )
 
+        val_loss, gender_acc = evaluate(
+            model,
+            val_loader,
+            disease_loss_fn,
+            gender_loss_fn,
+            device,
+        )
+
+        train_losses.append(train_loss)
+        val_losses.append(val_loss)
+        gender_accuracies.append(gender_acc)
+
         print(
-            f"Epoch {epoch+1}/{args.epochs} | "
+            f"Epoch {epoch + 1}/{args.epochs} | "
             f"Train Loss: {train_loss:.4f} | "
             f"Val Loss: {val_loss:.4f} | "
             f"Gender Acc: {gender_acc:.4f}"
         )
 
-    Path("outputs").mkdir(exist_ok=True)
-    torch.save(model.state_dict(), args.output)
-    print(f"Saved model to {args.output}")
+    output_path = Path(args.output)
+    output_path.parent.mkdir(exist_ok=True, parents=True)
+
+    torch.save(model.state_dict(), output_path)
+    print(f"Saved model to {output_path}")
+
+    metrics_path = Path(args.metrics_output)
+    metrics_path.parent.mkdir(exist_ok=True, parents=True)
+
+    with open(metrics_path, "w", encoding="utf-8") as f:
+        for i, (train_loss, val_loss, gender_acc) in enumerate(
+            zip(train_losses, val_losses, gender_accuracies),
+            start=1,
+        ):
+            f.write(
+                f"Epoch {i} | "
+                f"Train Loss: {train_loss:.4f} | "
+                f"Val Loss: {val_loss:.4f} | "
+                f"Gender Acc: {gender_acc:.4f}\n"
+            )
+
+    print(f"Saved metrics to {metrics_path}")
 
 
 if __name__ == "__main__":
