@@ -118,6 +118,10 @@ PYTHONPATH=src python src/xray_project/train_model.py \
 
 ## Results
 
+## Training Loss Visualization
+
+![Training Loss](outputs/training_loss.png)
+
 ### Training Loss
 
 | Epoch | Training Loss |
