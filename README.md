@@ -1,5 +1,5 @@
 # X-Ray DL Project
-# Author: Suhas Makineni
+Author: Suhas Makineni
 
 ## Project Purpose
 
