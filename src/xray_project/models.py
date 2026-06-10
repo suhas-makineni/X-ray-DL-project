@@ -1,12 +1,13 @@
 import torch.nn as nn
-from torchvision.models import resnet18
+from torchvision.models import resnet18, ResNet18_Weights
 
 
 class MultiTaskXRayModel(nn.Module):
     def __init__(self, num_diseases):
         super().__init__()
 
-        self.backbone = resnet18(weights=None)
+        self.backbone = resnet18(weights=ResNet18_Weights.DEFAULT)
+
         in_features = self.backbone.fc.in_features
         self.backbone.fc = nn.Identity()
 
